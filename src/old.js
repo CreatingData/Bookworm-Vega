@@ -3333,10 +3333,7 @@ var BookwormClasses = {
         }
         // Find out the relevant options from the database, then run this.
         bookworm.updateVariableOptions(bookworm.query['database'],followup)
-
         updateQuantitative()
-
-
     },
 
     initializeInterfaceElements: function() {
