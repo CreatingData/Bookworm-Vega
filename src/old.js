@@ -3521,45 +3521,7 @@ var BookwormClasses = {
                 catch(err) {console.log(d3.select(this).attr("class")); return(err.message)}
             })
     },
-    alignAesthetic : function() {
-        //begin the real big.
 
-        var bookworm = this;
-        var query = bookworm.query
-        var quantitativeVariables = bookworm.quantitativeVariables
-
-        if ('aesthetic' in query) {
-            var counttypes = {}
-            var groups     = {}
-
-            //pushes the aesthetic values into the appropriate boxes.
-
-            var aesthetics = d3.keys(query['aesthetic'])
-
-            aesthetics.map(function(aesthetic) {
-                var possibleQuants = quantitativeVariables
-                    .map(function(counttype) {return counttype.variable})
-
-                if (possibleQuants.indexOf(query['aesthetic'][aesthetic]) > -1) {
-                    counttypes[query['aesthetic'][aesthetic]] = 1
-                } else if (typeof(query['aesthetic'][aesthetic])=="object") {
-                    //do nothing if the type of the aesthetic is not a string; useful
-                    //for complicated internal representations.
-                }
-                else if (typeof(query['aesthetic'][aesthetic])=="undefined") {
-                    //do nothing if the type of the aesthetic is not a string; useful
-                    //for complicated internal representations.
-                }
-                else
-                {
-                    groups[query['aesthetic'][aesthetic]] = 1
-                }
-            }
-                          );
-            query['counttype'] = d3.keys(counttypes);
-            query['groups'] = d3.keys(groups)
-        }
-    },
     topn : function(n,key,dataset) {
         var query = this.query;
         //passed a full, parsed dataset, this filters by 'key' down to only the top n items. Useful for long-tail categorical distributions.

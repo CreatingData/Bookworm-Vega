@@ -24,6 +24,7 @@
   "homepage": "https://github.com/CreatingData/Bookworm-Vega#readme",
   "dependencies": {
     "d3-collection": "^1.0.7",
-    "d3-interpolate": "^1.3.2"
+    "d3-interpolate": "^1.3.2",
+    "lodash-es": "^4.17.11"
   }
 }
