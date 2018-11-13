@@ -88,7 +88,6 @@ export default function smooth(data, span, smoothingBy, quantKeys, kernel, weigh
   }
 
   var completeIndex = completeNesting.map(data)
-
   
   //One element per each interaction of variables in the groupings:
   // recreated by recursively descending the first levels of the completeIndex hierarchy.
@@ -144,7 +143,6 @@ export default function smooth(data, span, smoothingBy, quantKeys, kernel, weigh
      vals.sort( (a, b) => {
          return a[smoothingBy] - b[smoothingBy]
      })
-     console.log(vals)
      range(span).forEach( i => {
          locEntries = blur(vals, quantKeys.filter(d => d !== weights))
      })

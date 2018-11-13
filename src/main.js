@@ -6,8 +6,8 @@ import timer from 'd3-timer';
 import { interpolate } from 'd3-interpolate';
 import * as plots from './translators';
 import { extend } from 'lodash-es';
-import smooth from './smooth.js';
-
+import smooth from './smooth.js'
+import labels from './search_limit_labels';
 
 const counttypes = {
     "WordsPerMillion":"Uses per Million Words",
@@ -38,11 +38,14 @@ export default class Bookworm {
     buildSpec(query) {
         const { data, width, height } = this;
         const type = query.plottype
+        this.spec = new plots[type](query)
+            .data(this.smooth(data))
+            .spec()
 
-        this.spec = new plots[type](query).data(this.smooth(data)).spec()
+        this.spec.width = +width
+        this.spec.height = +height
 
-        this.spec.width = width/2
-        this.spec.height = height/2
+        
     }
 
     smooth() {
@@ -58,7 +61,6 @@ export default class Bookworm {
         } else {
             return data
         }
-
     }
 
     render() {
@@ -66,17 +68,17 @@ export default class Bookworm {
         return vegaEmbed(this.selector, amendedSpec)
     }
 
-
-
-    plotAPI(query) {
+    plotAPI(query, drawing) {
         this.query = alignAesthetic(query)
-        return bookwormFetch(query)
-          .then(data => {
-              this.data = data
-              this.buildSpec(query)
-              return this.render()
+        if (drawing) {
+            return bookwormFetch(query)
+              .then(data => {
+                this.data = data
+                this.buildSpec(query)
+                return this.render()
           })
-    }
+        }
+}
 
 
 }
@@ -111,7 +113,7 @@ function alignAesthetic(query) {
     if (query.aesthetic) {
         keys(query.aesthetic).forEach( (key) => {
             const val = query.aesthetic[key]
-            if (val === 'search_limits') return false
+            if (val === 'search_limits' || val === 'Search') return false
             if (counttypes[val] !== undefined) {
                 query.counttype.push(val)
             } else {
@@ -131,7 +133,7 @@ function serverSideJSON(queryFull) {
         delete(query.aesthetic)
         delete(query.scaleType)
         delete(query.smoothingSpan)
-        delete(query.plotType)
+        delete(query.plottype)
         return JSON.stringify(query);
 
 }
@@ -144,16 +146,21 @@ function parseBookwormData(json,locQuery) {
     var bookworm = this
 
     if (json instanceof Array) {
-        //
+        // when the return is an array, more than one search
+        // limit has been entered.
+        const [ baseq, diffs ] = labels(locQuery.search_limits)
+        console.log(diffs)
         const newOut = {};
         json.forEach( (d, i) => {
-            newOut[i] = d
+            newOut[diffs[i]] = d
         })
-            json = newOut;
-        names.push("search_limits")
+        json = newOut;
+        names.push("Search")
     }
 
-    names = names.concat(locQuery.groups).concat(locQuery.counttype);
+    names = names
+      .concat(locQuery.groups)
+      .concat(locQuery.counttype);
 
     function flatten(hash,prepend) {
         prepend = prepend || [];
