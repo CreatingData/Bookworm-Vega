@@ -17,6 +17,7 @@ const counttypes = {
     "TextCount":"# of Texts",
     "TotalTexts":"Total # of Texts",
     "WordsRatio":"Ratio of group A to B",
+    "TextRatio":"Ratio of texts",
     "SumWords":"Total in both sets",
     "TextLength":"Mean text length (in words)",
     "MatchesPerText":"Mean hits per matching text",
@@ -68,7 +69,7 @@ export default class Bookworm {
         return vegaEmbed(this.selector, amendedSpec)
     }
 
-    plotAPI(query, drawing) {
+    plotAPI(query, drawing = true) {
         this.query = alignAesthetic(query)
         if (drawing) {
             return bookwormFetch(query)

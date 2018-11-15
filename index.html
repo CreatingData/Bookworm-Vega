@@ -1,0 +1,129 @@
+<script src="dist/output.js"></script>
+<script src="http://d3js.org/d3.v5.min.js"></script>
+
+<h2>Bookworm API Sandbox</h2>
+
+This is an example of transpiling from the old Bookworm visualization
+API to Vegalite. You can plot the query below, or edit it. (I'll some
+examples, eventually.) Once you click "draw plot," it will place a
+query to the Hathi Trust server and draw the vega spec in the screen
+below.
+
+Good uses of this library will provide more granular support than
+editing the API call directly, as here.
+
+<h3>Other queries</h3>
+
+<div id=other></div>
+
+<textarea rows=12 cols=80>
+ {
+  "plottype":"streamgraph",
+  "smoothingSpan": 3,
+  "host": "https://bookworm.htrc.illinois.edu",
+  "database":"Bookworm2016",
+  "aesthetic": {
+   "x": "date_year",
+   "y": "TextCount",
+   "color": "language"
+  },
+  "search_limits":{
+   "language__id":{"$lte": 10},
+   "date_year":{"$gte":1760,"$lte":2010}
+  },
+  "vega": {"title": "Number of books in the Hathi trust by year, top 12 languages."}
+  }
+</textarea>
+
+<br>
+
+<button>Draw Plot</button>
+
+<br>
+
+<script>
+
+  var input = d3.select("textarea")
+  
+  var worm= new bookworm.default("#canvas", 600, 400)
+  
+  d3.select("button").on("click", function() {
+      worm.plotAPI(JSON.parse(input.node().value))
+  })
+
+  worm.plotAPI(JSON.parse(input.node().value))
+
+  const others = [
+  {"name": "Number of books in the most common non-English languages",
+  "query":  {
+  "plottype":"heatmap",
+  "smoothingSpan": 3,
+  "host": "https://bookworm.htrc.illinois.edu",
+  "database":"Bookworm2016",
+  "aesthetic": {
+   "x": "date_year",
+   "color": "TextCount",
+   "y": "language"
+  },
+  "search_limits":{
+   "language__id":{"$lte": 15},
+   "date_year":{"$gte":1760,"$lte":2010}
+  },
+  "vega": {"title": "Number of books in the Hathi trust by year, top 16 languages."}
+  }},{
+  "name": "Medical words, by library",
+  "query": {
+  "plottype": "heatmap",
+  "smoothingSpan": 3,
+  "host": "https://bookworm.htrc.illinois.edu",
+  "database": "Bookworm2016",
+  "aesthetic": {
+    "x": "date_year",
+    "color": "TextPercent",
+    "y": "contributing_library"
+  },
+  "search_limits": {
+    "contributing_library__id": {
+      "$lte": 15
+    },
+    "date_year": {
+      "$gte": 1760,
+      "$lte": 2010
+    },"word":["medical","medicine"]
+  },
+  "vega": {
+    "title": "Percentage of texts with words 'medical' or 'medicine', by library"
+  }
+  }
+  },
+  {"name": "Usage of words 'HARVARD' and 'Harvard'",
+  "query":  {
+    "plottype":"linechart",
+    "smoothingSpan":0,
+    "aesthetic": {
+    "x": "date_year",
+    "y": "TextPercent",
+    "color":"Search"
+    },
+    "words_collation":"Case_Sensitive",
+    "database":"Bookworm2016",
+    "search_limits":[
+         {"word":["HARVARD"],"date_year":{"$gte":1760,"$lte":2010}},
+         {"word":["Harvard"],"date_year":{"$gte":1760,"$lte":2010}}
+     ]
+  }
+  }
+  ]
+
+  const buttons = d3.select("#other").selectAll("button").data(others).enter()
+
+  buttons.append("button").text(d => d.name).on("click", d=> {
+  input.node().value = JSON.stringify(d.query, null, 2)
+  
+
+  })
+  
+</script>
+
+
+<div id="canvas"></div>
