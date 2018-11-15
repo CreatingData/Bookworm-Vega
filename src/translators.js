@@ -6,6 +6,15 @@ import labels from './search_limit_labels';
 
 class Translator {
 
+    /* 
+       A translator takes a bookworm query and returns a
+       vega-lite spec.
+       
+       The most important methods is 'translate', which builds the spec.
+       This is not defined for the 
+       
+     */
+    
     constructor(query) {
       // The bookworm query
       this.query = query
@@ -86,6 +95,8 @@ var extractRelevantField = function(dateKey) {
     })
         return output
 }
+
+
 
 export class streamgraph extends Translator {
     translate() {
@@ -171,8 +182,11 @@ export class heatmap extends Translator {
 }
 
 export class barchart extends Translator {
+    
     translate() {
+        
         const { query, p } = this;
+        
         this.p = extend(this.p, {
             "mark": {"type": "rect"},
             "encoding": {
@@ -180,6 +194,7 @@ export class barchart extends Translator {
                 y: {"type": "ordinal"},
             }
         })
+        
         this.aestheticize()
             
         return this.p

@@ -5,7 +5,7 @@ import 'vega-embed/vega-embed.css';
 import timer from 'd3-timer';
 import { interpolate } from 'd3-interpolate';
 import * as plots from './translators';
-import { extend } from 'lodash-es';
+import { merge } from 'lodash-es';
 import smooth from './smooth.js'
 import labels from './search_limit_labels';
 
@@ -64,7 +64,7 @@ export default class Bookworm {
     }
 
     render() {
-        const amendedSpec = extend(this.spec, this.query.vega || {})
+        const amendedSpec = merge(this.spec, this.query.vega || {})
         return vegaEmbed(this.selector, amendedSpec)
     }
 

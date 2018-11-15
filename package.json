@@ -4,7 +4,9 @@
   "description": "Wrapper for vega-lite to Bookworm visualizations",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+      "test": "echo \"Error: no test specified\" && exit 1",
+      "lintfix": "eslint src/scripts/modules/*.js --fix && eslint src/scripts/*.js --fix",
+      "watch": "webpack-dev-server --hot"
   },
   "repository": {
     "type": "git",
