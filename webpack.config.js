@@ -4,7 +4,7 @@ module.exports = {
   entry: "./index.js",
   output: {
       path: path.resolve(__dirname, "dist"),
-      library: 'bookworm-vega',
+      library: 'bookworm',
       libraryTarget: 'umd',
       filename: "output.js"
   },
