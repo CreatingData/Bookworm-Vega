@@ -2,7 +2,7 @@ import * as d3Fetch from 'd3-fetch';
 import vegaEmbed from 'vega-embed';
 import { keys } from 'd3-collection';
 import 'vega-embed/vega-embed.css';
-import timer from 'd3-timer';
+import { timer } from 'd3-timer';
 import { interpolate } from 'd3-interpolate';
 import * as plots from './translators';
 import { merge } from 'lodash-es';
@@ -26,27 +26,31 @@ const counttypes = {
     "DunningTexts":"Dunning Log Likelihood (Text count)"
 }
 
+// Keep a module-wide cache.
+
+const definitions = {};
+
 export default class Bookworm {
+    
     constructor(selector, width = 600, height = 400) {
         this.selector = selector;
         this.width = width;
         this.height = height;
-        this.previous = undefined
+        this.history = [null];
+        this.previous_aes = undefined;
         this.query = { 'search_limits': {} };
         this.data = [];
     }
-
+    
     buildSpec(query) {
         const { data, width, height } = this;
-        const type = query.plottype
+        const type = query.plottype;
         this.spec = new plots[type](query)
             .data(this.smooth(data))
-            .spec()
-
-        this.spec.width = +width
-        this.spec.height = +height
-
-        
+            .spec();
+        this.spec = merge(this.spec, this.query.vega || {})
+        this.spec.width = +width;
+        this.spec.height = +height;
     }
 
     smooth() {
@@ -65,10 +69,25 @@ export default class Bookworm {
     }
 
     render() {
-        const amendedSpec = merge(this.spec, this.query.vega || {})
-        return vegaEmbed(this.selector, amendedSpec)
+        return vegaEmbed(this.selector, this.spec)
     }
 
+    interpolateSpecs() {
+        const d = 5000
+        const interpolator = interpolate(this.history[1].data, this.spec.data)
+
+        this.t = timer (elapsed => {
+            let ratio = elapsed/d
+            if (elapsed/d > 1) {ratio = 1}
+            this.spec.data = interpolator(ratio)
+            this.render()
+            if (ratio === 1) {
+                this.t.stop()
+            }
+        })
+        
+    }
+    
     plotAPI(query, drawing = true) {
         this.query = alignAesthetic(query)
         if (drawing) {
@@ -76,12 +95,12 @@ export default class Bookworm {
               .then(data => {
                 this.data = data
                 this.buildSpec(query)
+                this.history = [this.spec, this.history[0]]
                 return this.render()
           })
         }
-}
-
-
+    }
+    
 }
 
 function validate(query) {
@@ -101,9 +120,10 @@ function bookwormFetch(query) {
     if (domain.startsWith("http:")) {
         //    domain = "https://cors-anywhere.herokuapp.com/" +  domain
     }
-    return d3Fetch.json(`${domain}/cgi-bin/dbbindings.py?query=${url}`)
-                  .then(
-                      data => parseBookwormData(data.data, query))
+    
+    return d3Fetch
+      .json(`${domain}/cgi-bin/dbbindings.py?query=${url}`)
+      .then( (data) => parseBookwormData(data.data, query))
 }
 
 

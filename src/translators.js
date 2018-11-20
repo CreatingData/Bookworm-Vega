@@ -5,19 +5,16 @@ import labels from './search_limit_labels';
 // Translators 
 
 class Translator {
-
     /* 
        A translator takes a bookworm query and returns a
        vega-lite spec.
        
        The most important methods is 'translate', which builds the spec.
        This is not defined for the 
-       
      */
-    
     constructor(query) {
       // The bookworm query
-      this.query = query
+      this.query = query;
       // The vega spec.
       this.p = {
         encoding: {},
@@ -25,11 +22,8 @@ class Translator {
     }
 
     make_titles() {
-
         if (this.query.search_limits.length) {
-            
             const [ baseq, diffs ] = labels(this.query.search_limits)
-                
             this.p.title = {
                 "orient": "bottom",
                 "text": "Limits: " + baseq
