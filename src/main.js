@@ -1,7 +1,7 @@
 import * as d3Fetch from 'd3-fetch';
 import vegaEmbed from 'vega-embed';
 import { keys } from 'd3-collection';
-import 'vega-embed/vega-embed.css';
+import 'vega-embed/vega-embed.scss';
 import { timer } from 'd3-timer';
 import { interpolate } from 'd3-interpolate';
 import * as plots from './translators';
@@ -10,20 +10,22 @@ import smooth from './smooth.js'
 import labels from './search_limit_labels';
 
 const counttypes = {
-    "WordsPerMillion":"Uses per Million Words",
-    "WordCount":"# of matches",
-    "TextPercent":"% of texts",
-    "TotalWords":"Total # of words",
-    "TextCount":"# of Texts",
-    "TotalTexts":"Total # of Texts",
-    "WordsRatio":"Ratio of group A to B",
-    "TextRatio":"Ratio of texts",
-    "SumWords":"Total in both sets",
-    "TextLength":"Mean text length (in words)",
-    "MatchesPerText":"Mean hits per matching text",
-    "TFIDF":"TFIDF",
-    "Dunning":"Dunning Log Likelihood",
-    "DunningTexts":"Dunning Log Likelihood (Text count)"
+  "WordsPerMillion":"Uses per Million Words",
+  "WordCount":"# of matches",
+  "TextPercent":"% of texts",
+  "TotalWords":"Total # of words",
+  "TextCount":"# of Texts",
+  "TotalTexts":"Total # of Texts",
+  "WordsRatio":"Ratio of group A to B",
+  "TextRatio":"Ratio of texts",
+  "SumWords":"Total in both sets",
+  "TextLength":"Mean text length (in words)",
+  "MatchesPerText":"Mean hits per matching text",
+  "TFIDF":"TFIDF",
+  "Dunning":"Dunning Log Likelihood",
+  "DunningTexts":"Dunning Log Likelihood (Text count)",
+  "PMI_texts":"Pointwise Mutual Information across # of texts.",
+  "PMI_words": "PMI across number of words."
 }
 
 // Keep a module-wide cache.
