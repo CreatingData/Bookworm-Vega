@@ -1,6 +1,6 @@
-<script src="dist/output.js"></script>
 <script src="output.js"></script>
-<script src="http://d3js.org/d3.v5.min.js"></script>
+<!--> Below to enforce rebuild in webpack dev mode. <-->
+<script src="dist/d3.v4.min.js"></script>
 
 <h2>Bookworm API Sandbox</h2>
 
@@ -18,22 +18,6 @@ editing the API call directly, as here.
 <div id=other></div>
 
 <textarea rows=12 cols=80>
-  {
-  "plottype":"streamgraph",
-  "smoothingSpan": 3,
-  "host": "https://bookworm.htrc.illinois.edu",
-  "database":"Bookworm2016",
-  "aesthetic": {
-  "x": "date_year",
-  "y": "TextCount",
-  "color": "language"
-  },
-  "search_limits":{
-  "language__id":{"$lte": 10},
-  "date_year":{"$gte":1760,"$lte":2010}
-  },
-  "vega": {"title": "Number of books in the Hathi trust by year, top 12 languages."}
-  }
 </textarea>
 
 <br>
@@ -49,158 +33,22 @@ editing the API call directly, as here.
   var worm= new bookworm.default("#canvas", 600, 400)
 
   d3.select("button").on("click", function() {
-  worm.plotAPI(JSON.parse(input.node().value))
+     worm.plotAPI(JSON.parse(input.node().value))
   })
 
-  worm.plotAPI(JSON.parse(input.node().value))
-
-  const others = [
-  {
-  "name": "Default streamgraph",
-  "query": {
-  "plottype":"streamgraph",
-  "smoothingSpan": 3,
-  "host": "https://bookworm.htrc.illinois.edu",
-  "database":"Bookworm2016",
-  "aesthetic": {
-  "x": "date_year",
-  "y": "TextCount",
-  "color": "language"
-  },
-  "search_limits":{
-  "language__id":{"$lte": 10},
-  "date_year":{"$gte":1760,"$lte":2010}
-  },
-  "vega": {"title": "Number of books in the Hathi trust by year, top 12 languages."}
-  }},
-  {"name": "Linechart 1",
-  "query": {"plottype": "linechart",
-  "smoothingSpan": 3,
-  "host": "https://bookworm.htrc.illinois.edu",
-  "database": "Bookworm2016",
-  "aesthetic": {
-  "x": "date_year",
-  "color": "Search",
-  "y": "WordsPerMillion"
-  },
-  "search_limits": [ {
-  "date_year": {
-  "$gte": 1760,
-  "$lte": 2010
-  },
-  "word": ["medical",
-  "medicine"
-  ]
-  }, {
-  "date_year": {
-  "$gte": 1760,
-  "$lte": 2010
-  },
-  "word": [
-  "normal"
-  ]
-  }]
-  }
-  },
-  {"name": "Linechart 2",
-  "query": {"plottype": "linechart",
-  "smoothingSpan": 3,
-  "host": "https://bookworm.htrc.illinois.edu",
-  "database": "Bookworm2016",
-  "aesthetic": {
-  "x": "date_year",
-  "color": "Search",
-  "y": "WordsPerMillion"
-  },
-  "search_limits": [ {
-  "date_year": {
-  "$gte": 1760,
-  "$lte": 2010
-  },
-  "word": [
-  "evolution"
-  ]
-  }, {
-  "date_year": {
-  "$gte": 1760,
-  "$lte": 2010
-  },
-  "word": [
-  "selection"
-  ]
-  }],
-  "vega": {
-  "title": "Percentage of texts with words 'medical' or 'medicine', by library"
-  }
-  }},
-  {"name": "Number of books in the most common non-English languages",
-  "query":  {
-  "plottype":"heatmap",
-  "smoothingSpan": 3,
-  "host": "https://bookworm.htrc.illinois.edu",
-  "database":"Bookworm2016",
-  "aesthetic": {
-  "x": "date_year",
-  "color": "TextCount",
-  "y": "language"
-  },
-  "search_limits":{
-  "language__id":{"$lte": 15},
-  "date_year":{"$gte":1760,"$lte":2010}
-  },
-  "vega": {"title": "Number of books in the Hathi trust by year, top 16 languages."}
-  }},{
-  "name": "Medical words, by library",
-  "query": {
-  "plottype": "heatmap",
-  "smoothingSpan": 3,
-  "host": "https://bookworm.htrc.illinois.edu",
-  "database": "Bookworm2016",
-  "aesthetic": {
-  "x": "date_year",
-  "color": "TextPercent",
-  "y": "contributing_library"
-  },
-  "search_limits": {
-  "contributing_library__id": {
-  "$lte": 15
-  },
-  "date_year": {
-  "$gte": 1760,
-  "$lte": 2010
-  },"word":["medical","medicine"]
-  },
-  "vega": {
-  "title": "Percentage of texts with words 'medical' or 'medicine', by library"
-  }
-  }
-  },
-  {"name": "Usage of words 'HARVARD' and 'Harvard'",
-  "query":  {
-  "plottype":"linechart",
-  "smoothingSpan":0,
-  "aesthetic": {
-  "x": "date_year",
-  "y": "TextPercent",
-  "color":"Search"
-  },
-  "words_collation":"Case_Sensitive",
-  "database":"Bookworm2016",
-  "search_limits":[
-  {"word":["HARVARD"],"date_year":{"$gte":1760,"$lte":2010}},
-  {"word":["Harvard"],"date_year":{"$gte":1760,"$lte":2010}}
-  ]
-  }
-  }
-  ]
-
+  d3.json("dist/default_searches.json", function(others) {
   const buttons = d3.select("#other").selectAll("button").data(others).enter()
 
-  buttons.append("button").text(d => d.name).on("click", d=> {
-  input.node().value = JSON.stringify(d.query, null, 2)
-
-
+  buttons.append("button")
+  .text(d => d.name)
+  .on("click", d => input.node().value = JSON.stringify(d.query, null, 2))
+  
+  
+  input.node().value = JSON.stringify(others[0].query, null, 2)
+  
+  worm.plotAPI(JSON.parse(input.node().value))
   })
+  
 
 </script>
 
