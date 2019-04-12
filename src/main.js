@@ -5,7 +5,7 @@ import 'vega-embed/vega-embed.scss';
 import { timer } from 'd3-timer';
 import { interpolate } from 'd3-interpolate';
 import * as plots from './translators';
-import { merge } from 'lodash-es';
+import { merge, set } from 'lodash-es';
 import smooth from './smooth.js'
 import labels from './search_limit_labels';
 
@@ -50,9 +50,9 @@ export default class Bookworm {
     this.spec = new plots[type](query)
       .data(this.smooth(data))
       .spec();
-    this.spec = merge(this.spec, this.query.vega || {})
     this.spec.width = +width;
     this.spec.height = +height;
+    this.spec = merge(this.spec, this.query.vega || {})
   }
 
   smooth() {
@@ -147,7 +147,12 @@ function alignAesthetic(query) {
   if (query.aesthetic) {
     keys(query.aesthetic).forEach( (key) => {
       const val = query.aesthetic[key]
-      if (val === 'search_limits' || val === 'Search') return false
+      if (val === 'search_limits' ||
+          val === 'Search' ||
+          query.counttype.concat(query.groups).includes(val)
+         ) {
+        return false
+      }
       if (counttypes[val] !== undefined) {
         query.counttype.push(val)
       } else {

@@ -76,7 +76,7 @@ class Translator {
 function correctTimes(f) {
   const field = extractRelevantField(f)
   if (field === 'year') {
-    return { type: "ordinal", timeUnit: "utcyear"}
+    return { type: "ordinal"}//, timeUnit: "utcyear"}
   } else {
     return {}
   }
@@ -210,6 +210,22 @@ export class linechart extends Translator {
 
       }
     })
+    this.aestheticize()
+    return this.p
+  }
+}
+
+export class scatterplot extends Translator {
+
+  translate() {
+    const { query, p } = this;
+    this.p = extend(this.p, {
+      "mark": {"type": "circle","size":30},
+      "encoding":  {       "y": {"type": "ordinal"},
+                           "x": {"type": "ordinal"}
+                   }
+    })
+ 
     this.aestheticize()
     return this.p
   }

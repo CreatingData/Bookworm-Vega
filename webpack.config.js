@@ -2,11 +2,17 @@ const path = require("path");
 
 module.exports = {
   entry: "./index.js",
+  devtool: 'inline-source-map',
+  devServer: {
+    contentBase: './dist',
+    clientLogLevel: 'error'
+  },
   output: {
-      path: path.resolve(__dirname, "dist"),
-      library: 'bookworm',
-      libraryTarget: 'umd',
-      filename: "output.js"
+    path: path.resolve(__dirname, "dist"),
+    publicPath: "/",
+    library: 'bookworm',
+    libraryTarget: 'umd',
+    filename: "output.js"
   },
   module: {
     rules: [
