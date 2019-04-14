@@ -1,6 +1,7 @@
 import { keys } from 'd3-collection';
 import { extend } from 'lodash-es';
 import labels from './search_limit_labels';
+  
 
 // Translators
 
@@ -136,6 +137,10 @@ export class USchoropleth extends Translator {
     return this
   }
 
+  expected() {
+    return ["color", "state", "row", "column"]
+  }
+  
   translate() {
     this.p = extend(this.p, {
       "data": {
@@ -213,6 +218,12 @@ export class linechart extends Translator {
     this.aestheticize()
     return this.p
   }
+
+  expected() {
+    return ["color", "state", "row", "column"]
+  }
+
+  
 }
 
 export class scatterplot extends Translator {

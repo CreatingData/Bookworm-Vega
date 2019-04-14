@@ -8,25 +8,8 @@ import * as plots from './translators';
 import { merge, set } from 'lodash-es';
 import smooth from './smooth.js'
 import labels from './search_limit_labels';
+import { counttypes, base_schema } from './schema';
 
-const counttypes = {
-  "WordsPerMillion":"Uses per Million Words",
-  "WordCount":"# of matches",
-  "TextPercent":"% of texts",
-  "TotalWords":"Total # of words",
-  "TextCount":"# of Texts",
-  "TotalTexts":"Total # of Texts",
-  "WordsRatio":"Ratio of group A to B",
-  "TextRatio":"Ratio of texts",
-  "SumWords":"Total in both sets",
-  "TextLength":"Mean text length (in words)",
-  "MatchesPerText":"Mean hits per matching text",
-  "TFIDF":"TFIDF",
-  "Dunning":"Dunning Log Likelihood",
-  "DunningTexts":"Dunning Log Likelihood (Text count)",
-  "PMI_texts":"Pointwise Mutual Information across # of texts.",
-  "PMI_words": "PMI across number of words."
-}
 
 // Keep a module-wide cache.
 
@@ -41,20 +24,59 @@ export default class Bookworm {
     this.history = [null];
     this.previous_aes = undefined;
     this.query = { 'search_limits': {} };
+    this.schemas = {};
     this.data = [];
   }
 
   buildSpec(query) {
     const { data, width, height } = this;
     const type = query.plottype;
+    
     this.spec = new plots[type](query)
       .data(this.smooth(data))
       .spec();
+    
     this.spec.width = +width;
     this.spec.height = +height;
     this.spec = merge(this.spec, this.query.vega || {})
   }
 
+  querySchema(query = {}) {
+    const schema = JSON.parse(JSON.stringify(base_schema))
+    const host = query.host || schema.properties.host.default;
+    const dbname = query.database || schema.properties.database.default;
+    return this._options(host, dbname).then(options => {
+      
+      const features = options.map(row => row.dbname)
+      const counts = keys(counttypes)
+      const rows = counts.concat(features)
+      schema.properties.aesthetic.properties.color.enum = rows;
+      schema.properties.aesthetic.properties.x.enum = rows;
+      schema.properties.aesthetic.properties.y.enum = rows;            
+      
+      return schema;
+    })
+  }
+
+  _options(host, db) {
+    const k = `${host}-${db}`;
+    if (this.schemas[k]) {
+      // Wrap the cached value in a promise
+      return Promise.resolve(this.schemas[k])
+    }
+    return bookwormFetch(
+      {
+        "method": "schema",
+        "format": "json_c",
+        "host": host,
+        database: db
+      }).then(val => {
+        this.schemas[k] = val;
+        return this.schemas[k];
+      })
+    
+  }
+  
   smooth() {
     const { query, data } = this
     if (query.smoothingSpan) {
@@ -102,7 +124,6 @@ export default class Bookworm {
         })
     }
   }
-
 }
 
 function validate(query) {
@@ -178,7 +199,8 @@ function serverSideJSON(queryFull) {
 
 }
 
-function parseBookwormData(data,locQuery) {
+function parseBookwormData(data, locQuery) {
+  
   var names = []
   var bookworm = this
 
@@ -214,6 +236,8 @@ function parseBookwormData(data,locQuery) {
       .flat()
   )
 
+  console.log(columns, keyz, locQuery)
+  
   let results = columns[0]
     .map((x, i) => {
       const row = {};
