@@ -9,51 +9,59 @@ import { merge, set } from 'lodash-es';
 import smooth from './smooth.js'
 import labels from './search_limit_labels';
 import { counttypes, base_schema } from './schema';
-
-
+import { extractRelevantField } from './time_handling';
 // Keep a module-wide cache.
 
 const definitions = {};
 
 export default class Bookworm {
 
-  constructor(selector, width = 600, height = 400) {
+  constructor(selector, host, width = 600, height = 400) {
+    // Bookworms must 
     this.selector = selector;
     this.width = width;
     this.height = height;
     this.history = [null];
     this.previous_aes = undefined;
-    this.query = { 'search_limits': {} };
+    this.host = host;
+    this.query = { 'search_limits': {},  host: host};
     this.schemas = {};
     this.data = [];
   }
 
-  buildSpec(query) {
+  buildSpec(query, schema) {
     const { data, width, height } = this;
     const type = query.plottype;
     
-    this.spec = new plots[type](query)
+    this.spec = new plots[type](query, schema)
       .data(this.smooth(data))
       .spec();
-    
-    this.spec.width = +width;
-    this.spec.height = +height;
+      
+    this.spec.config = this.spec.config || {};
+    this.spec.config.view = this.spec.config.view || {};
+    this.spec.config.view.width = +width;
+    this.spec.config.view.height = +height;
     this.spec = merge(this.spec, this.query.vega || {})
   }
 
+  
   querySchema(query = {}) {
     const schema = JSON.parse(JSON.stringify(base_schema))
-    const host = query.host || schema.properties.host.default;
-    const dbname = query.database || schema.properties.database.default;
+    const host = this.query.host || "http://localhost:10012"
+    const dbname = this.query.database || "federalist_bookworm"
     return this._options(host, dbname).then(options => {
-      
+      schema.properties.database.default = dbname;
       const features = options.map(row => row.dbname)
+      features.push("word")
+      features.push("Search")
       const counts = keys(counttypes)
+      const anything = features.concat(counts)
       const rows = counts.concat(features)
-      schema.properties.aesthetic.properties.color.enum = rows;
-      schema.properties.aesthetic.properties.x.enum = rows;
-      schema.properties.aesthetic.properties.y.enum = rows;            
-      
+      schema.definitions.count_type.enum = counts;
+      schema.definitions.metadata.enum = features; 
+      schema.definitions.anything.enum = anything;
+      schema.properties.aesthetic.additionalProperties.enum = anything;
+//      schema.definitions.aesthetic.enum = rows;
       return schema;
     })
   }
@@ -113,12 +121,20 @@ export default class Bookworm {
   }
 
   plotAPI(query, drawing = true) {
+    query.database = query.database || this.query.database
+    query.host = query.host || this.host
+    console.log(query)
     this.query = alignAesthetic(query)
+    console.log(query)
     if (drawing) {
-      return bookwormFetch(query)
-        .then(data => {
+      return Promise.all([
+        this._options(query.host, query.database),
+        bookwormFetch(query)
+      ])
+        .then((v) => {
+          const [schema, data] = v;
           this.data = data
-          this.buildSpec(query)
+          this.buildSpec(query, schema)
           this.history = [this.spec, this.history[0]]
           return this.render()
         })
@@ -132,22 +148,29 @@ function validate(query) {
   if (!query.plottype) {throw("Must have a 'plottype' key")};
 }
 
-function bookwormFetch(query) {
-  let domain = query.host || 'https://bookworm.htrc.illinois.edu'
+function bookwormFetch(query, host) {
+  let domain = host || query.host;
+
   const newQuery = alignAesthetic(query);
   newQuery.method = newQuery.method || "data"
   newQuery.format = newQuery.format || "json_c"
 
   const url = encodeURI(JSON.stringify(newQuery));
+
+  console.log(domain)
   // This wrapper should only apply in an emergency, but currently
   // is always used.
   if (domain.startsWith("http:")) {
     //    domain = "https://cors-anywhere.herokuapp.com/" +  domain
   }
-
+  
+  const data_url = `${domain}/cgi-bin/dbbindings.py?query=${url}`
   return d3Fetch
-    .json(`${domain}/cgi-bin/dbbindings.py?query=${url}`)
+    .json(data_url)
     .then( (data) => {
+      if (data.status == "error") {
+	throw data.message
+      }
       const results = parseBookwormData(data.data, query)
       if (results[0]['Search'] !== undefined) {
         // More informative search labels.
@@ -160,17 +183,32 @@ function bookwormFetch(query) {
     })
 }
 
+export function simplifyQuery(obj) {
+  // JSON Schema likes to have arrays in a [{"key": foo, "value": bar}] format
+  // that is more concisely represented as {"foo": bar}.
+
+  const output = {};
+  if (obj.length === undefined) {
+    return obj
+  }
+  obj.forEach( o => {
+    const {key, value} = o;
+    output[key] = value
+  })
+  return output
+}
 
 function alignAesthetic(query) {
   // Percolate aesthetic to 'counttypes' or 'groups' as necessary.
   query.groups = [];
   query.counttype = [];
   if (query.aesthetic) {
-    keys(query.aesthetic).forEach( (key) => {
-      const val = query.aesthetic[key]
+    const remapped = simplifyQuery(query.aesthetic)
+    keys(remapped).forEach( (key) => {
+      const val = remapped[key]
       if (val === 'search_limits' ||
           val === 'Search' ||
-          query.counttype.concat(query.groups).includes(val)
+            query.counttype.concat(query.groups).includes(val)
          ) {
         return false
       }
@@ -203,24 +241,6 @@ function parseBookwormData(data, locQuery) {
   
   var names = []
   var bookworm = this
-
-  if (data instanceof Array) {
-
-    const [baseq, labels] = labels(locQuery.search_limits)
-    // You can define multiple searches;
-    // Those are passed to a new index called 'search.'
-    const multiples = data.map(parseBookwormData)
-    
-    multiples.map((search, i) => {
-      search.forEach(row => {
-        row['Search'] = i
-      })
-    })
-    return multiples.reduce( (a, b) => a.concat(b))
-
-  }
-
-  
   const keyz = keys(data)
 
   const columns = keyz.map(
@@ -228,7 +248,7 @@ function parseBookwormData(data, locQuery) {
       // Test by properties if it's an array 
       d => d.reduceRight ?
         // If so, unroll it using the first (integer) key as the run-length.
-        Array(d[0] + 1).fill(d[1]):
+        Array(d[0]).fill(d[1]):
         // otherwise, 
         d
     )
@@ -236,8 +256,20 @@ function parseBookwormData(data, locQuery) {
       .flat()
   )
 
-  console.log(columns, keyz, locQuery)
+  keyz.forEach((k, i) => {
+    
+    const [f] = extractRelevantField(k)
+    const dt = new Date()
+    if (['month', 'day', 'week'].indexOf(f) > -1) {
+      columns[i] = columns[i].map(d => {
+        dt.setFullYear(0, 1, d)
+        
+        return dt.toISOString().split("T")[0]
+      })
+    }
+  })
   
+  // Columns[0] is a dummy; really just a range enumeration.
   let results = columns[0]
     .map((x, i) => {
       const row = {};
@@ -246,10 +278,12 @@ function parseBookwormData(data, locQuery) {
       })
       return row;
     })
+  
 
-
+  
   results = add_href(results, locQuery)
-
+  
+  
   return results
 }
 
@@ -277,30 +311,4 @@ function add_href(data, locQuery) {
       return row
     })
   return results
-}
-
-function toObject(names, values) {
-  // A hack against the way the json format
-  // loses type information.
-  var result = {};
-  for (var i = 0; i < names.length; i++) {
-    if (names[i].endsWith("_year") || names[i].endsWith("_month")) {
-      values[i] = `${parseInt(values[i])}`
-    }
-    result[names[i]] = values[i];
-  }
-  return result;
-};
-
-//run flatten initially with nothing prepended: as it recurses, that will get filled in.
-try {
-  var flat = flatten(json);
-} catch(err) {
-  var flat = []
-}
-
-window.bookworm_search = function(json) {
-
-  //add the labels.
-
 }

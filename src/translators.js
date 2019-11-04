@@ -1,8 +1,8 @@
 import { keys } from 'd3-collection';
 import { extend } from 'lodash-es';
 import labels from './search_limit_labels';
-  
-
+import { simplifyQuery } from './main';
+import { correctTimes } from './time_handling'
 // Translators
 
 class Translator {
@@ -15,9 +15,14 @@ class Translator {
     This is undefined in the base class.
 
   */
-  constructor(query) {
+  constructor(query, schema) {
     // The bookworm query
     this.query = query;
+    this.schema = {"Search": {"type": "character"}};
+    schema.forEach(row => {
+      this.schema[row.dbname] = row
+    })
+
     // The vega spec.
     this.p = {
       encoding: {},
@@ -52,48 +57,37 @@ class Translator {
   data(data) {
     // Attaches data to the query.
     // Returns the translator
-    this.p.data = {values: data}
-
+    this.p.data = { values: data }
     return this
   }
 
   aestheticize() {
-    const { p, query } = this;
+    const { p, query, schema } = this;
 
     // Updates a copy of the spec and returns it.
-    keys(query.aesthetic).forEach(k => {
+    const aesthetic = simplifyQuery(query.aesthetic)
 
-      // Handled by the choropleth code.
+    keys(aesthetic).forEach(k => {
+      // Handled specially by the choropleth code.
       if (k === 'state') {return}
-      const val = query.aesthetic[k]
-      p.encoding[k] = extend(p.encoding[k], { field: val })
+
+      const val = aesthetic[k]
+      let type = "quantitative"
+      if (schema[val] && schema[val].type == 'character') {
+        type = "nominal"
+      }
+      p.encoding[k] = extend(p.encoding[k], {
+        field: val,
+        type: type
+      })
       p.encoding[k] = extend(p.encoding[k], correctTimes(val));
-      p.encoding['href'] = {'field': 'href', 'type': 'nominal'}
+
     })
+    // Href handling is done automatically
+    p.encoding['href'] = {'field': 'href', 'type': 'nominal'}
   }
 
 }
-
-function correctTimes(f) {
-  const field = extractRelevantField(f)
-  if (field === 'year') {
-    return { type: "ordinal"}//, timeUnit: "utcyear"}
-  } else {
-    return {}
-  }
-}
-
-
-var extractRelevantField = function(dateKey) {
-  var output = undefined
-  dateKey.split("_").reverse().forEach(function(phrase) {
-    //The first date phrase to appear is the one we're using;
-    //The reverse forEach means that's the one that will persist
-    if (['year','month','day','week','decade','century',"Year","Decade","yearchunk","hour"].indexOf(phrase) >= 0) {output=phrase}
-  })
-  return output
-}
-
 
 
 export class streamgraph extends Translator {
@@ -102,7 +96,7 @@ export class streamgraph extends Translator {
       "mark": "area",
       "encoding": {
         x: {
-          "axis": {"domain": false, "tickSize": 0}
+        //  "axis": {"domain": false, "tickSize": 0}
         },
         y: {"stack": "center"},
         color: {type: "nominal"}
@@ -140,7 +134,7 @@ export class USchoropleth extends Translator {
   expected() {
     return ["color", "state", "row", "column"]
   }
-  
+
   translate() {
     this.p = extend(this.p, {
       "data": {
@@ -172,9 +166,7 @@ export class heatmap extends Translator {
     this.p = extend(this.p, {
       "mark": {"type": "rect"},
       "encoding": {
-        color: {"type": "quantitative"},
-        x: {"type": "ordinal"},
-        y: {"type": "ordinal"}
+        
       }
     })
     this.aestheticize()
@@ -223,7 +215,7 @@ export class linechart extends Translator {
     return ["color", "state", "row", "column"]
   }
 
-  
+
 }
 
 export class scatterplot extends Translator {
@@ -231,12 +223,13 @@ export class scatterplot extends Translator {
   translate() {
     const { query, p } = this;
     this.p = extend(this.p, {
-      "mark": {"type": "circle","size":30},
-      "encoding":  {       "y": {"type": "ordinal"},
-                           "x": {"type": "ordinal"}
-                   }
+      "mark": {"type": "circle", "size":30},
+      "encoding":  {
+        "y": {},//"type": "ordinal"},
+        "x": {}//"type": "ordinal"}
+      }
     })
- 
+
     this.aestheticize()
     return this.p
   }

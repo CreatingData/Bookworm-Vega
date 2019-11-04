@@ -11,7 +11,7 @@ module.exports = {
     path: path.resolve(__dirname, "dist"),
     publicPath: "/",
     library: 'bookworm',
-    libraryTarget: 'umd',
+    libraryTarget: 'umd', 
     filename: "output.js"
   },
   module: {
