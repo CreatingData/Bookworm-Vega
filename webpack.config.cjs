@@ -1,7 +1,7 @@
 const path = require("path");
 
 module.exports = {
-  entry: "./index.js",
+  entry: "./src/index.js",
   devtool: 'inline-source-map',
   devServer: {
     contentBase: './dist',
@@ -12,7 +12,7 @@ module.exports = {
     publicPath: "/",
     library: 'bookworm',
     libraryTarget: 'umd', 
-    filename: "output.js"
+    filename: "bookworm-vega.js"
   },
   module: {
     rules: [
@@ -36,10 +36,10 @@ module.exports = {
             // Loader for webpack to process CSS with PostCSS
             loader: 'postcss-loader',
             options: {
-              plugins: function () {
-                return [
-                  require('autoprefixer')
-                ];
+              postcssOptions: {
+              plugins: [
+                ['autoprefixer'],
+              ]
               }
             }
           },

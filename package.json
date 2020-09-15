@@ -1,12 +1,12 @@
 {
   "name": "bookworm-vega",
   "version": "1.1.0",
+  "type": "module",
   "description": "Wrapper for vega-lite to Bookworm visualizations",
-  "main": "index.js",
+  "main": "dist/bookworm-vega.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lintfix": "eslint src/scripts/modules/*.js --fix && eslint src/scripts/*.js --fix",
-    "watch": "webpack-dev-server --hot"
+    "watch": "webpack-dev-server --hot --config webpack.config.cjs"
   },
   "repository": {
     "type": "git",
@@ -32,25 +32,25 @@
     "d3-timer": "^1.0.9",
     "lodash-es": "^4.17.15",
     "tslib": "^1.10.0",
-    "vega": "^5.7.3",
+    "vega": "^5.9.1",
     "vega-embed": "^6.0.0",
-    "vega-lite": "^3.4.0",
-    "webpack-dev-server": "^3.8.2"
+    "vega-lite": "^4.15.0"
   },
   "devDependencies": {
     "@babel/core": "^7.6.4",
     "@babel/preset-env": "^7.6.3",
-    "autoprefixer": "^9.6.5",
+    "autoprefixer": "^9.8.6",
     "babel-core": "^6.26.3",
     "babel-loader": "^8.0.6",
-    "css-loader": "^3.2.0",
+    "css-loader": "^4.3.0",
     "import-local": "^3.0.2",
-    "mkdirp": "^0.5.1",
-    "node-sass": "^4.12.0",
-    "postcss-loader": "^3.0.0",
-    "sass-loader": "^8.0.0",
-    "style-loader": "^1.0.0",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.9"
+    "node-sass": "^4.14.1",
+    "postcss-loader": "^4.0.2",
+    "sass": "^1.26.10",
+    "sass-loader": "^10.0.2",
+    "style-loader": "^1.2.1",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.9",
+    "webpack-dev-server": "^3.8.2"
   }
 }
