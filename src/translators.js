@@ -176,11 +176,8 @@ export class heatmap extends Translator {
 }
 
 export class barchart extends Translator {
-
   translate() {
-
     const { query, p } = this;
-
     this.p = extend(this.p, {
       "mark": {"type": "rect"},
       "encoding": {
@@ -190,7 +187,6 @@ export class barchart extends Translator {
     })
 
     this.aestheticize()
-
     return this.p
   }
 }
@@ -222,6 +218,7 @@ export class scatterplot extends Translator {
 
   translate() {
     const { query, p } = this;
+    
     this.p = extend(this.p, {
       "mark": {"type": "circle", "size":30},
       "encoding":  {
@@ -236,7 +233,6 @@ export class scatterplot extends Translator {
 }
 
 export class pointchart extends Translator {
-
   translate() {
     const { query, p } = this;
     this.p = extend(this.p, {

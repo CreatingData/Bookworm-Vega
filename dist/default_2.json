@@ -1,9 +1,27 @@
 [
   {
+  "name": "Histogram of authors on localhost",
+  "query": {
+  "plottype":"barchart",
+  "smoothingSpan": 0,
+  "host": "http://localhost:10012/",
+  "database":"federalist_bookworm",
+  "aesthetic": {
+  "x": "TextCount",
+  "y": "author"
+  },
+  "search_limits":{
+  },
+  "vega": {"title": "Number of Federalist papers by author."}
+  }
+},
+  
+  {
   "name": "Streamgraph of words",
   "query": {
   "plottype":"streamgraph",
   "smoothingSpan": 3,
+  "format": "json",
   "host": "https://bookworm.htrc.illinois.edu",
   "database":"Bookworm2016",
   "aesthetic": {
@@ -23,6 +41,7 @@
   "query": {
   "plottype":"streamgraph",
   "smoothingSpan": 3,
+  "format": "json",
   "host": "https://bookworm.htrc.illinois.edu",
   "database":"Bookworm2016",
   "aesthetic": {
@@ -39,6 +58,7 @@
   {"name": "Linechart of 'medical' and 'normal.'",
   "query": {"plottype": "linechart",
   "smoothingSpan": 3,
+  "format": "json",
   "host": "https://bookworm.htrc.illinois.edu",
   "database": "Bookworm2016",
   "aesthetic": {
@@ -68,6 +88,7 @@
   {"name": "Linechart 2",
   "query": {"plottype": "linechart",
   "smoothingSpan": 3,
+  "format": "json",
   "host": "https://bookworm.htrc.illinois.edu",
   "database": "Bookworm2016",
   "aesthetic": {
@@ -100,6 +121,7 @@
   "query":  {
   "plottype":"heatmap",
   "smoothingSpan": 3,
+  "format": "json",
   "host": "https://bookworm.htrc.illinois.edu",
   "database":"Bookworm2016",
   "aesthetic": {
@@ -117,6 +139,7 @@
   "query": {
   "plottype": "heatmap",
   "smoothingSpan": 3,
+  "format": "json",
   "host": "https://bookworm.htrc.illinois.edu",
   "database": "Bookworm2016",
   "aesthetic": {
@@ -139,6 +162,9 @@
   }
   },
   {"name": "Usage of words 'HARVARD' and 'Harvard'",
+    "format": "json",
+    "host": "https://bookworm.htrc.illinois.edu",
+
   "query":  {
   "plottype":"linechart",
   "smoothingSpan":0,

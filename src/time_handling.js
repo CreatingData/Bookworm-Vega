@@ -2,8 +2,6 @@
 
 // Bookworm stores times as 4 byte integer days.
 
-
-
 export function correctTimes(f) {
   const [field, round] = extractRelevantField(f)
   if (field === undefined) {return undefined}
@@ -14,7 +12,7 @@ export function correctTimes(f) {
       // Abstract month format if year is undefined.
       return { type: "temporal" ,  timeUnit: "utcmonthdate"}        
     }
-    console.log("THis one", field, round)
+    console.log("This one", field, round)
     return { type: "temporal" ,  timeUnit: "utcyearmonthdate"}
   }
   console.log("Still ticking", f)

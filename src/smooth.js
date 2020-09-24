@@ -2,6 +2,8 @@ import { mean, sum, min, max, range } from 'd3-array';
 import { keys, set, nest } from 'd3-collection';
 
 export default function smooth(data, span, smoothingBy, quantKeys, kernel, weights) {
+  // Todo--reimplement this using more modern D3.
+  return data;
   if (span <= 0) {return data}
   let kernelSmoother;
   kernel = kernel || "sine"
@@ -103,7 +105,8 @@ export default function smooth(data, span, smoothingBy, quantKeys, kernel, weigh
         })
     } else {
       let returnVal = []
-      map.keys().forEach(function(key2) {
+      console.log(map)
+      Array.from(map.keys()).forEach(function(key2) {
         const vals = recurse(map.get(key2), labels.slice(1))
         returnVal = returnVal.concat(vals.map(function(d) {
           d[key] = key2

@@ -1,5 +1,4 @@
-<script src="output.js"></script>
-<!--> Below to enforce rebuild in webpack dev mode. <-->
+<script src="bookworm-vega.js"></script>
 <script src="d3.v4.min.js"></script>
 
 <h2>Bookworm API Sandbox</h2>
@@ -36,7 +35,7 @@ editing the API call directly, as here.
      worm.plotAPI(JSON.parse(input.node().value))
   })
 
-  d3.json("default_searches.json", function(others) {
+  d3.json("default_2.json", function(others) {
   const buttons = d3.select("#other").selectAll("button").data(others).enter()
 
   buttons.append("button")
