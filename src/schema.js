@@ -1,4 +1,4 @@
-import * as charts from "./translators";
+import * as charts from "./translators.js";
 // The base query schema.s
 
 export const counttypes = {
@@ -40,11 +40,11 @@ export const base_schema = {
           "type": "array",
   //    "title": "Categorical limit",
       "items": {"type": "string", "name": "value", "title": "item"}
-    },   
+    },
     "search_limit": {
       "title": "Search Limit.",
       "type": "object",
-      "$comment": "The react validation can't handle the complexity here: " + 
+      "$comment": "The react validation can't handle the complexity here: " +
       "it breaks when you add a oneOf to the field all the way in here.",
       "description": "A set of limitations: keys are metadata fields" +
       " and values are limits.",
@@ -53,7 +53,7 @@ export const base_schema = {
 //        "description": "List of possible matches.",
 //        "$comment": "THIS IS ACTUALLY MUCH MORE COMPLICATED. NEEDS '$gt', etc",
   //    "oneOf": [{
-                //}, 
+                //},
       "type": "array",
       "title": "Categorical limit",
       "items": {"type": "string", "name": "value", "title": "item"}

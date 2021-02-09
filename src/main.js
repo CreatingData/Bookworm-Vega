@@ -4,127 +4,191 @@ import { keys } from 'd3-collection';
 // import 'vega-embed/vega-embed.scss';
 import { timer } from 'd3-timer';
 import { interpolate } from 'd3-interpolate';
-import * as plots from './translators';
 import { merge, set } from 'lodash-es';
-import { selectAll } from 'd3-selection';
+import { select, selectAll } from 'd3-selection';
 import 'd3-transition';
+import * as plots from './translators.js';
 import smooth from './smooth.js'
-import labels from './search_limit_labels';
-import { counttypes, base_schema } from './schema';
-import { extractRelevantField } from './time_handling';
-// Keep a module-wide cache.
+import labels from './search_limit_labels.js';
+import { counttypes, base_schema } from './schema.js';
+import { extractRelevantField } from './time_handling.js';
 
+// Keep a module-wide cache.
 const definitions = {};
+
+function clone(query) {
+  return JSON.parse(JSON.stringify(query))
+}
 
 export default class Bookworm {
 
-constructor(selector, host, width = 600, height = 400) {
-  // Bookworms must 
-  this.selector = selector;
-  this.width = width;
-  this.height = height;
-  this.history = [null];
-  this.previous_aes = undefined;
-  this.host = host;
-  this.query = { 'search_limits': {},  host: host};
-  this.schemas = {};
-  this.data = [];
-}
-
-buildSpec(query, schema) {
-  const { data, width, height } = this;
-  const type = query.plottype;
-  
-  this.spec = new plots[type](query, schema)
-    .data(this.smooth(data))
-    .spec();
-    
-  this.spec.config = this.spec.config || {};
-  this.spec.config.view = this.spec.config.view || {};
-  this.spec.config.view.width = +width;
-  this.spec.config.view.height = +height;
-  this.spec = merge(this.spec, this.query.vega || {})
-}
+  constructor(selector, query = {host: undefined, database: undefined}) {
+    // Bookworms must
 
 
-querySchema(query = {}) {
-  const schema = JSON.parse(JSON.stringify(base_schema))
-  const host = this.query.host || "http://localhost:10012"
-  const dbname = this.query.database || "federalist_bookworm"
-  return this._options(host, dbname).then(options => {
-//    console.log("OPTIONS ARE", options)
-    schema.properties.database.default = dbname;
-    const features = options.map(row => row.dbname)
-    features.push("word")
-    features.push("Search")
-    const counts = keys(counttypes)
-    const anything = features.concat(counts)
-    const rows = counts.concat(features)
-    schema.definitions.count_type.enum = counts;
-    schema.definitions.metadata.enum = features; 
-    schema.definitions.anything.enum = anything;
-    schema.properties.aesthetic.additionalProperties.enum = anything;
-//      schema.definitions.aesthetic.enum = rows;
-    return schema;
-  })
-}
-
-_options(host, db) {
-  const k = `${host}-${db}`;
-  if (this.schemas[k]) {
-    // Wrap the cached value in a promise
-    return Promise.resolve(this.schemas[k])
+    this.selector = selector;
+    this.history = [];
+    this.previous_aes = undefined;
+    this.query = clone(query);
+    this.schemas = {};
+    this.data = [];
+    // For programmatic reference.
+    this.metrics = counttypes;
   }
-  return bookwormFetch(
-    {
-      "method": "schema",
-      "format": "json_c",
-      "host": host,
-      database: db
-    }).then(val => {
+
+  get width() {
+    return window.innerWidth * .7
+  }
+
+  get height() {
+    return window.innerHeight * .7
+  }
+
+  query_labeller(x) {
+    // wrapped for export
+    return labels(x)
+  }
+
+  get schema() {
+    // Return schema for the currently defined database.
+    if (this.query.database === undefined || this.query.host === undefined) {
+      throw "Can't get schema without defining a database."
+    }
+    const {host, database} = this.query;
+    return this._options(host, database)
+  }
+
+  buildSpec(query, schema) {
+      const {
+        data,
+        width,
+        height
+      } = this;
+      const type = query.plottype;
+      /*
+      if (query.search_limits.length > 1 && !query['aesthetic']['color']) {
+        query['aesthetic']['color'] = "Search"
+      }
+      */
+
+      this.spec = new plots[type](query, schema)
+        .data(this.smooth(data))
+        .spec();
+
+      this.spec.config = this.spec.config || {};
+      this.spec.config.view = this.spec.config.view || {};
+      this.spec.config.view.width = +width;
+      this.spec.config.view.height = +height;
+      this.spec.config.autosize = {
+        "type": "fit",
+        "contains": "padding"
+      }
+    this.spec = merge(this.spec, this.query.vega || {})
+  }
+
+  querySchema(query = {}) {
+    const schema = JSON.parse(JSON.stringify(base_schema))
+    const host = this.query.host || "http://localhost:10012"
+    const dbname = this.query.database || "federalist_bookworm"
+    return this._options(host, dbname).then(options => {
+      schema.properties.database.default = dbname;
+      const features = options.map(row => row.dbname)
+      features.push("word")
+      features.push("Search")
+      const counts = keys(counttypes)
+      const anything = features.concat(counts)
+      const rows = counts.concat(features)
+      schema.definitions.count_type.enum = counts;
+      schema.definitions.metadata.enum = features;
+      schema.definitions.anything.enum = anything;
+      schema.properties.aesthetic.additionalProperties.enum = anything;
+  //      schema.definitions.aesthetic.enum = rows;
+      return schema;
+    })
+  }
+
+  category_labels(field) {
+    const {host, database} = this.query;
+    const schema = this.schemas[`${host}-${database}`]
+    if (schema) {
+      // Breaks if the requested key isn't actually in the schema.
+      const match = schema.filter(d => d.dbname==field)[0]
+      if (match.top_100) {
+        return Promise.resolve(match.top_100)
+      }
+
+      match.top_100 = [];
+      const query = {
+        host,
+        database,
+        method: "data",
+        format: "json",
+        search_limits: {},
+        aesthetic: {
+          y: field,
+          x: "TextCount"
+        }
+      }
+      query.search_limits[`${field}__id`] = {"$lte": 100}
+      return bookwormFetch(query).then((data) => {
+        match.top_100 = data
+        return data
+      })
+    }  
+  }
+
+  async _options(host, db) {
+    const k = `${host}-${db}`;
+    if (this.schemas[k]) {
+      // Wrap the cached value in a promise
+      return this.schemas[k]
+    }
+    try {
+      const val = await bookwormFetch(
+        {
+          "method": "schema",
+          "format": "json_c",
+          "host": host,
+          database: db
+        });
       this.schemas[k] = val;
       return this.schemas[k];
-    }).catch(err => {
-      // DEPRECATED
-      // Try it with a json query for returnPossibleFields; just for Hathi.
-    return bookwormFetch(
-      {
-        "method": "returnPossibleFields",
-        "format": "json",
-        "host": host,
-        database: db
-      }).then(val => {
-        this.schemas[k] = val;
-        return this.schemas[k];
-    })
-  })
-  
-  
-}
-
-smooth() {
-  const { query, data } = this
-  if (query.smoothingSpan) {
-    return smooth(
-      data,
-      query.smoothingSpan,
-      query.aesthetic.x,
-      query.counttype,
-      "faussian",
-      false)
-  } else {
-    return data
+    } catch (err) {
+      const val_1 = await bookwormFetch(
+        {
+          "method": "returnPossibleFields",
+          "format": "json",
+          "host": host,
+          database: db
+        });
+      this.schemas[k] = val_1;
+      return this.schemas[k];
+    }
   }
-}
 
-render() {
-  return vegaEmbed(this.selector, this.spec)
-}
+  smooth() {
+    const { query, data } = this
+    if (query.smoothingSpan) {
+      return smooth(
+        data,
+        query.smoothingSpan,
+        query.aesthetic.x,
+        query.counttype,
+        "faussian",
+        false)
+    } else {
+      return data
+    }
+  }
+
+  async render() {
+    await vegaEmbed(this.selector, this.spec);
+    return this.make_marks_clickable(this.query);
+  }
 
 interpolateSpecs() {
   const d = 5000
   const interpolator = interpolate(this.history[1].data, this.spec.data)
-
   this.t = timer (elapsed => {
     let ratio = elapsed/d
     if (elapsed/d > 1) {ratio = 1}
@@ -134,32 +198,76 @@ interpolateSpecs() {
       this.t.stop()
     }
   })
-
 }
 
-plotAPI(query, drawing = true) {
-  //console.log(this.selector)
-  //console.log(selectAll(this.selector).transition())
+  download() {
+    const csv = csvFormat(this.data); // "foo,bar\n1,2"
+    window.open("data:text/csv;charset=utf-8," + csv)
+
+  }
+  
+  make_marks_clickable(locQuery) {
+    
+    const query = JSON.parse(serverSideJSON(locQuery))
+    const root_limits = JSON.parse(serverSideJSON(locQuery)).search_limits
+
+    query['method'] = 'search';
+    query['format'] = 'json';
+
+    // By default, open up a new window with the results.
+    select("body").on("bookwormSearch", (event) => {
+      console.log(event)
+      
+      show_search_results(event.detail.href_html)
+    })
+
+    select("g[aria-roledescription='rect mark container'],g[aria-roledescription='symbol mark container']")
+    .selectAll("path")
+    .on("click", function(d) {
+      const datum = this.__data__.datum
+
+      query['search_limits'] = root_limits[datum._search_index]
+      query.groups.forEach( g => {
+        let v = datum[g];
+        if (g === 'year') {
+          v = new Date(v + 1000 * 60 * 60 * 24).getFullYear()
+        }
+        query['search_limits'][g] = [v]
+      })
+      const query_string = encodeURI(JSON.stringify(query))
+      const href_json = `${locQuery.host}/cgi-bin/dbbindings.py?${query_string}`
+      query['method'] = 'html'
+      const html_string = encodeURI(JSON.stringify(query))
+      const href_html = `${locQuery.host}/cgi-bin/dbbindings.py?${query_string}`
+      select(this).dispatch("bookwormSearch", {bubbles: true, cancelable: true, 
+        detail: {href_html, href_json}})
+      })
+    }
+plotAPI(inputQuery, drawing = true) {
+  const query = JSON.parse(JSON.stringify(inputQuery))
+
   selectAll(this.selector).transition().duration(500).style("opacity", .33)
+  // It's optional to pass the database and host every time.
   query.database = query.database || this.query.database
-  query.host = query.host || this.host
+  query.host = query.host || this.query.host
+
   this.query = alignAesthetic(query)
-  //console.log("Plotting")
+
   if (drawing) {
-    return Promise.all([
+    return Promise.all([      
       this._options(query.host, query.database),
       bookwormFetch(query)
     ])
       .then(([schema, data]) => {
         //console.log(schema, data)
         this.data = data
-        
+
         //console.log("parsed as", data)
         this.buildSpec(query, schema)
         this.history = [this.spec, this.history[0]]
-        selectAll(this.selector).transition().duration(200).style("opacity", 1)        
+        selectAll(this.selector).transition().duration(200).style("opacity", 1)
         return this.render()
-      })
+      }).then(() => this)
   }
 }
 }
@@ -184,27 +292,25 @@ function bookwormFetch(query, host) {
   if (domain.startsWith("http:")) {
     //    domain = "https://cors-anywhere.herokuapp.com/" +  domain
   }
-  
-const data_url = `${domain}/cgi-bin/dbbindings.py?query=${url}`
-return d3Fetch
-  .json(data_url)
-  .then( (data) => {
-    if (data.status == "error") {
-        throw data.message
-    }
-    // Old version that wasn't wrapped.
-    if (query.method == "returnPossibleFields") {return data}
-    const results = parseBookwormData(data.data, query)
-    //console.log(query, results)
-    if (results[0]['Search'] !== undefined) {
-      // More informative search labels.
-      const [baseq, search_labels] = labels(query.search_limits)
-      results.forEach(d => {
-        d.Search = search_labels[d.Search]
-      })
-    }
-    return results
-  })
+
+  const data_url = `${domain}/cgi-bin/dbbindings.py?query=${url}`
+  return d3Fetch
+    .json(data_url)
+    .then( (data) => {
+        if (data.status == "error") {
+	      throw data.message
+      }
+      const results = parseBookwormData(data.data, query)
+      if (results[0]['Search'] !== undefined) {
+        // More informative search labels.
+        const [baseq, search_labels] = labels(query.search_limits)
+        results.forEach(d => {
+          d._search_index = d.Search
+          d.Search = search_labels[d.Search]
+        })
+      }
+      return results
+    })
 }
 
 export function simplifyQuery(obj) {
@@ -224,26 +330,26 @@ return output
 
 function alignAesthetic(query) {
 // Percolate aesthetic to 'counttypes' or 'groups' as necessary.
-query.groups = [];
-query.counttype = [];
-if (query.aesthetic) {
-  const remapped = simplifyQuery(query.aesthetic)
-  keys(remapped).forEach( (key) => {
-    const val = remapped[key]
-    if (val === 'search_limits' ||
-        val === 'Search' ||
-          query.counttype.concat(query.groups).includes(val)
-       ) {
-      return false
-    }
-    if (counttypes[val] !== undefined) {
-      query.counttype.push(val)
-    } else {
-      query.groups.push(val)
-    }
-  })
-}
-return query
+  query.groups = [];
+  query.counttype = [];
+  if (query.aesthetic) {
+    const remapped = simplifyQuery(query.aesthetic)
+    keys(remapped).forEach( (key) => {
+      const val = remapped[key]
+      if (val === 'search_limits' ||
+          val === 'Search' ||
+            query.counttype.concat(query.groups).includes(val)
+        ) {
+        return false
+      }
+      if (counttypes[val] !== undefined) {
+        query.counttype.push(val)
+      } else {
+        query.groups.push(val)
+      }
+    })
+  }
+  return query
 }
 
 function serverSideJSON(queryFull) {
@@ -251,30 +357,26 @@ function serverSideJSON(queryFull) {
 //useful for seeing if the query needs to be rerun, or if all changes
 //can be handled client-side.
 
-var query = JSON.parse(JSON.stringify(queryFull))
-delete(query.aesthetic)
-delete(query.scaleType)
-delete(query.smoothingSpan)
-delete(query.plottype)
-delete(query.host)
-return JSON.stringify(query);
+  var query = JSON.parse(JSON.stringify(queryFull))
+  delete(query.aesthetic)
+  delete(query.scaleType)
+  delete(query.smoothingSpan)
+  delete(query.plottype)
+  delete(query.host)
+  return JSON.stringify(query);
 
 }
 
 function parseBookwormData(data, locQuery) {
   let d;
   if (locQuery.format == "json_c") {
-    //console.log("Parsing json_c")
     d = parseBookwormJSONC(data, locQuery)
   } else if (locQuery.format == "json") {
     if (locQuery.method == "returnPossibleFields") {
       return data
     }
-    //console.log("Parsing json")
     d = parseBookwormJson(data, locQuery)
   } else {
-    
-    //console.log(locQuery.format, "YOOZ")
   }
   const results = d//add_href(d, locQuery)
   return results
@@ -339,21 +441,21 @@ function parseBookwormJson(json,locQuery) {
     })
 
     return(results)
-    
+
 }
 
 
 function parseBookwormJSONC(data, locQuery) {
-    var names = []
+  let names = []
   const keyz = keys(data)
 
   const columns = keyz.map(
     k => data[k].map(
-      // Test by properties if it's an array 
+      // Test by properties if it's an array
       d => d.reduceRight ?
         // If so, unroll it using the first (integer) key as the run-length.
         Array(d[0]).fill(d[1]):
-        // otherwise, 
+        // otherwise,
         d
     )
     // flatten out the nested lists.
@@ -361,14 +463,20 @@ function parseBookwormJSONC(data, locQuery) {
   )
 
   keyz.forEach((k, i) => {
-    
+
     const [f] = extractRelevantField(k)
     const dt = new Date()
     if (['month', 'day', 'week'].indexOf(f) > -1) {
       columns[i] = columns[i].map(d => {
         dt.setFullYear(0, 1, d)
-        
+
         return dt.toISOString().split("T")[0]
+      })
+    }
+    if (['year'].indexOf(f) > -1) {
+      // Treat years as strings for Vega-lite.
+      columns[i] = columns[i].map(d => {
+        return "" + d
       })
     }
   })
@@ -382,31 +490,61 @@ function parseBookwormJSONC(data, locQuery) {
       })
       return row;
     })
-    return results
+
+
+
+  // results = add_href(results, locQuery)
+
+
+  return results
 }
 
 
-function add_href(data, locQuery) {
+function create_search_results_div() {
+  let container = selectAll("#bookworm-search")
+  if (container.empty()) {
+    container = select("body").append("div")
+    .attr("id", "bookworm-search")
+    .style("top", "0")
+    .style("width", "100vw")
+    .style("height", "100vh")
+    .style("background", "rgba(254, 254, 254, 0.7)")
+    .style("opacity", .95)
+    .style("position", "fixed")
 
-const query = JSON.parse(serverSideJSON(locQuery))
+    container
+    .append("div")
+    .style("position", "fixed")
+    .style("left", "15vw")
+    .style("top", "15vh")
+    .html(`
+      <h4>Search Results</h4>
+      <a class="close">close</a>
 
-query['method'] = 'search';
-query['format'] = 'html';
+      Search results
 
-return data
-  .map(row => {
+      <ul id=search-results></ul>
+
+      <a class="close">close</a>
+    `)
+    .on("click", (event) => {event.stopPropagation()})
+
     
-    // This could be more dynamic; currently, just
-    // open a search in a new window.
-    query.groups.forEach( g => {
-      query['search_limits'][g] = [row[g]]
-    })
-    
-    const query_string = encodeURI(JSON.stringify(query))
-    
-    row['href'] = `${locQuery.host}/cgi-bin/dbbindings.py?${query_string}`
-    
-    return row
+  }
+  container.selectAll(".close").on("click", (event) => {
+    container.remove()
   })
-return results
+  container.on("click", () => container.remove())
+  return container;
+}
+
+
+function show_search_results(href) {
+  d3Fetch.json(href).then(response => {
+    const data = response.data
+    const cont = create_search_results_div()
+    cont.select("ul").selectAll("li").data(data).
+    enter().append("li").html(d => d)
+  })
+
 }

@@ -1,8 +1,9 @@
 import { keys } from 'd3-collection';
 import { extend } from 'lodash-es';
-import labels from './search_limit_labels';
-import { simplifyQuery } from './main';
-import { correctTimes } from './time_handling'
+import labels from './search_limit_labels.js';
+import { simplifyQuery } from './main.js';
+import { correctTimes } from './time_handling.js';
+
 // Translators
 
 class Translator {
@@ -25,6 +26,7 @@ class Translator {
 
     // The vega spec.
     this.p = {
+      "usermeta": {"embedOptions": {"renderer": "svg"}},
       encoding: {},
     }
   }
@@ -62,6 +64,10 @@ class Translator {
   }
 
   aestheticize() {
+    /*
+      Create encodings on the vega-lite spec corresponding
+      to the fields in the bookworm query 'aesthetic' field.
+    */
     const { p, query, schema } = this;
 
     // Updates a copy of the spec and returns it.
@@ -84,7 +90,7 @@ class Translator {
 
     })
     // Href handling is done automatically
-    p.encoding['href'] = {'field': 'href', 'type': 'nominal'}
+    // p.encoding['href'] = {'field': 'href', 'type': 'nominal'}
   }
 
 }
@@ -166,7 +172,7 @@ export class heatmap extends Translator {
     this.p = extend(this.p, {
       "mark": {"type": "rect"},
       "encoding": {
-        
+
       }
     })
     this.aestheticize()
@@ -196,11 +202,22 @@ export class linechart extends Translator {
   translate() {
     const { query, p } = this;
     this.p = extend(this.p, {
-      "mark": {"type": "line"},
+      "mark": {"type": "line", "point": true, "tooltip": {"content": "data"}},
+      //"transform": [{"filter": {"selection": "hover"}}],
+/*      "selection": {
+        "brush": {"type": "interval", "encodings": ["x", "y"]}
+      }, */
       "encoding": {
-        x: {"type": "quantitative"},
-        y: {"type": "quantitative"},
-
+        x: {
+          "type": "quantitative",
+     //     "scale": {"domain": {"selection": "brush", "encoding": "x"}},
+        },
+        y: {
+          "type": "quantitative",
+          "scale": {
+            "type": query.scaleType
+          }
+        },
       }
     })
     this.aestheticize()
@@ -211,14 +228,13 @@ export class linechart extends Translator {
     return ["color", "state", "row", "column"]
   }
 
-
 }
 
 export class scatterplot extends Translator {
 
   translate() {
     const { query, p } = this;
-    
+
     this.p = extend(this.p, {
       "mark": {"type": "circle", "size":30},
       "encoding":  {

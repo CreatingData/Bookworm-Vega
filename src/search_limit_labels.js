@@ -7,7 +7,7 @@ export default function(qs) {
     const newer = JSON.parse(JSON.stringify(q))
     Object.keys(q).forEach( k => {
       if (isEqual(baseq[k], newer[k])) {
-        delete newer[k] 
+        delete newer[k]
       }
     })
     return label(newer)
@@ -24,7 +24,7 @@ function label(q) {
       // Expand to handle $gt, $lt, and only one of them.
       return `${v["$gte"]} <= ${k} <= ${v["$lte"]}`
     }
-    return `${k}: ${JSON.stringify(v)}` 
+    return `${k}: ${JSON.stringify(v)}`
   })
   return labs.join(", ")
 }

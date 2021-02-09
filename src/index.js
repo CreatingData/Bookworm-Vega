@@ -1,3 +1,3 @@
-import Bookworm from './main'
+import Bookworm from './main.js'
 
 export default Bookworm;
