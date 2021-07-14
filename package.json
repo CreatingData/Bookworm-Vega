@@ -1,58 +1,32 @@
 {
-  "name": "bookworm-vega",
-  "version": "1.1.0",
-  "type": "module",
-  "description": "Wrapper for vega-lite to Bookworm visualizations",
-  "main": "src/index.js",
+  "version": "0.0.1",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "webpack-dev-server --hot --config webpack.config.cjs",
-    "build": "webpack --config webpack.config.cjs"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/CreatingData/Bookworm-Vega.git"
-  },
-  "keywords": [
-    "Data",
-    "Visualization",
-    "Text",
-    "Visualization"
-  ],
-  "author": "Benjamin Schmidt",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/CreatingData/Bookworm-Vega/issues"
-  },
-  "homepage": "https://github.com/CreatingData/Bookworm-Vega#readme",
-  "dependencies": {
-    "d3-array": "^2.8.0",
-    "d3-collection": "^1.0.7",
-    "d3-fetch": "^1.2.0",
-    "d3-interpolate": "^1.4.0",
-    "d3-selection": "^2.0.0",
-    "d3-timer": "^1.0.10",
-    "d3-transition": "^2.0.0",
-    "lodash-es": "^4.17.15",
-    "vega": "^5.16.1",
-    "vega-embed": "^6.12.2",
-    "vega-lite": "^4.16.2"
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
   },
   "devDependencies": {
-    "@babel/core": "^7.11.6",
-    "@babel/preset-env": "^7.11.5",
-    "autoprefixer": "^9.8.6",
-    "babel-core": "^6.26.3",
-    "babel-loader": "^8.1.0",
-    "css-loader": "^4.3.0",
-    "import-local": "^3.0.2",
-    "node-sass": "^4.14.1",
-    "postcss-loader": "^4.0.2",
-    "sass": "^1.26.11",
-    "sass-loader": "^10.0.2",
-    "style-loader": "^1.2.1",
-    "webpack": "^4.44.2",
-    "webpack-cli": "^3.3.12",
-    "webpack-dev-server": "^3.11.0"
+    "vega-embed": "^6.18.2",
+    "vite": "^2.4.2"
+  },
+  "name": "bookworm-vega",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/bookworm-vega.umd.js",
+  "module": "./dist/bookworm-vega.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/bookworm-vega.es.js",
+      "require": "./dist/bookworm-vega.umd.js"
+    }
+  },
+  "dependencies": {
+    "d3-array": "^3.0.1",
+    "d3-fetch": "^3.0.1",
+    "d3-interpolate": "^3.0.1",
+    "d3-selection": "^3.0.0",
+    "d3-transition": "^3.0.1",
+    "lodash-es": "^4.17.21"
   }
 }
