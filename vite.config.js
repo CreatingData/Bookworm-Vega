@@ -3,7 +3,7 @@ const path = require('path')
 module.exports = {
   build: {
     lib: {
-      entry: path.resolve(__dirname, 'lib/main.js'),
+      entry: path.resolve(__dirname, 'lib/bookworm-client.js'),
       name: 'bookworm'
     },
     rollupOptions: {
